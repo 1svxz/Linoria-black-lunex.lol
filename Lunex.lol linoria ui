@@ -597,9 +597,6 @@ do
             Parent = DisplayFrame;
         });
 
-        -- ════════════════════════════════════════════════════════════════
-        --  Color picker container: 75% scale + on-screen clamp
-        -- ════════════════════════════════════════════════════════════════
         local PICKER_SCALE = 0.75
 
         local PickerFrameOuter = Library:Create('Frame', {
@@ -671,9 +668,6 @@ do
             Parent = SatVibMapInner;
         });
 
-        -- ════════════════════════════════════════════════════════════════
-        --  FIX: Bigger color picker orb (10x10 instead of 6x6)
-        -- ════════════════════════════════════════════════════════════════
         local CursorOuter = Library:Create('ImageLabel', {
             AnchorPoint = Vector2.new(0.5, 0.5);
             Size = UDim2.new(0, 10, 0, 10);
@@ -999,9 +993,6 @@ do
             ColorPicker:Display();
         end;
 
-        -- ════════════════════════════════════════════════════════════════
-        --  FIX: Dragging flag prevents the picker from closing mid-drag
-        -- ════════════════════════════════════════════════════════════════
         local Dragging = false
 
         SatVibMap.InputBegan:Connect(function(Input)
@@ -1108,9 +1099,6 @@ do
             end);
         end;
 
-        -- ════════════════════════════════════════════════════════════════
-        --  FIX: Don't hide the picker while dragging inside it
-        -- ════════════════════════════════════════════════════════════════
         Library:GiveSignal(InputService.InputBegan:Connect(function(Input)
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
                 if not Dragging and PickerFrameOuter.Visible then
@@ -2066,9 +2054,11 @@ do
             else
                 DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix);
             end
-            local X = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize));
-            Fill.Size = UDim2.new(0, X, 1, 0);
-            HideBorderRight.Visible = not (X == Slider.MaxSize or X == 0);
+
+            local fillScale = Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, 1);
+            Fill.Size = UDim2.new(fillScale, 0, 1, 0);
+
+            HideBorderRight.Visible = not (fillScale >= 0.999 or fillScale <= 0.001);
         end;
         function Slider:OnChanged(Func)
             Slider.Changed = Func;
@@ -2079,7 +2069,9 @@ do
             return tonumber(string.format('%.' .. Slider.Rounding .. 'f', Value))
         end;
         function Slider:GetValueFromXOffset(X)
-            return Round(Library:MapValue(X, 0, Slider.MaxSize, Slider.Min, Slider.Max));
+            local width = SliderInner.AbsoluteSize.X
+            if width <= 0 then return Slider.Min end
+            return Round(Library:MapValue(X, 0, width, Slider.Min, Slider.Max));
         end;
         function Slider:SetValue(Str)
             local Num = tonumber(Str);
@@ -2093,13 +2085,19 @@ do
         SliderInner.InputBegan:Connect(function(Input)
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
                 local function UpdateSlider(PosX)
-                    local gPos = Fill.AbsolutePosition.X
+                    local gPos = SliderInner.AbsolutePosition.X
+                    local width = SliderInner.AbsoluteSize.X
+
                     local Diff = PosX - gPos
-                    local nX = math.clamp(Diff, 0, Slider.MaxSize)
+                    local nX = math.clamp(Diff, 0, width)
+
                     local nValue = Slider:GetValueFromXOffset(nX);
                     local OldValue = Slider.Value;
+
                     Slider.Value = nValue;
+
                     Slider:Display();
+
                     if nValue ~= OldValue then
                         Library:SafeCallback(Slider.Callback, Slider.Value);
                         Library:SafeCallback(Slider.Changed, Slider.Value);
