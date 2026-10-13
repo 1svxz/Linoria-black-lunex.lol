@@ -39,10 +39,10 @@ local Library = {
     HudRegistry = {};
 
     FontColor = Color3.fromRGB(255, 255, 255);
-    MainColor = Color3.fromRGB(30, 30, 30);         -- charcoal
-    BackgroundColor = Color3.fromRGB(18, 18, 18);   -- dark charcoal
-    AccentColor = Color3.fromRGB(200, 68, 240);     -- #C844F0
-    OutlineColor = Color3.fromRGB(48, 48, 48);      -- subtle charcoal outline
+    MainColor = Color3.fromRGB(24, 24, 24);
+    BackgroundColor = Color3.fromRGB(20, 20, 20);
+    AccentColor = Color3.fromRGB(71, 119, 182);
+    OutlineColor = Color3.fromRGB(31, 31, 31);
     RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
@@ -81,7 +81,6 @@ local Library = {
 };
 
 Library.KeyPickerList = {};
-Library.SpinningStrokes = {};
 
 Library.BlurEffect = Instance.new("BlurEffect")
 Library.BlurEffect.Name = "LinoriaBlur"
@@ -256,15 +255,6 @@ table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
     end
 end))
 
-table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
-    for _, Data in ipairs(Library.SpinningStrokes) do
-        local G = Data.Gradient;
-        if G and G.Parent then
-            G.Rotation = (G.Rotation + Delta * 90) % 360;
-        end
-    end
-end));
-
 local function GetPlayersString()
     local PlayerList = Players:GetPlayers();
     for i = 1, #PlayerList do
@@ -344,26 +334,6 @@ end;
 
 function Library:ApplyGlow(Inst)
 
-end;
-
-function Library:ApplySpinningStroke(Instance)
-    local Stroke = Library:Create('UIStroke', {
-        Color = Color3.new(1, 1, 1);
-        Thickness = 1.5;
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
-        Parent = Instance;
-    });
-    local Gradient = Library:Create('UIGradient', {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0.00, Color3.new(0, 0, 0)),
-            ColorSequenceKeypoint.new(0.50, Color3.new(1, 1, 1)),
-            ColorSequenceKeypoint.new(1.00, Color3.new(0, 0, 0)),
-        });
-        Rotation = 0;
-        Parent = Stroke;
-    });
-    table.insert(Library.SpinningStrokes, { Gradient = Gradient });
-    return Stroke;
 end;
 
 function Library:CreateLabel(Properties, IsHud)
@@ -636,7 +606,7 @@ function Library:UpdateColorsUsingRegistry()
             elseif type(ColorIdx) == 'function' then
                 Object.Instance[Property] = ColorIdx()
             end
-        end;
+        end
     end;
 end;
 
@@ -3031,6 +3001,25 @@ do
         return Depbox;
     end;
 
+    -- ─────────────────────────────────────────────────────────────────────
+    --  FIX: Allow AddColorPicker / AddKeyPicker to be called directly on a
+    --  Groupbox, Tabbox sub-tab, or DependencyBox. These delegate to a
+    --  hidden holder Label so the pickers lay out exactly as normal.
+    -- ─────────────────────────────────────────────────────────────────────
+    function Funcs:AddColorPicker(Idx, Info)
+        local Holder = self:AddLabel("")
+        Holder.TextLabel.TextTransparency = 1
+        Holder.TextLabel.TextStrokeTransparency = 1
+        return Holder:AddColorPicker(Idx, Info)
+    end
+
+    function Funcs:AddKeyPicker(Idx, Info)
+        local Holder = self:AddLabel("")
+        Holder.TextLabel.TextTransparency = 1
+        Holder.TextLabel.TextStrokeTransparency = 1
+        return Holder:AddKeyPicker(Idx, Info)
+    end
+
     BaseGroupbox.__index = Funcs;
     BaseGroupbox.__namecall = function(Table, Key, ...)
         return Funcs[Key](...);
@@ -3372,7 +3361,6 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
     Library:MakeDraggable(Outer, 25, true);
-    Library:ApplySpinningStroke(Outer);
 
     local Inner = Library:Create('Frame', {
         Name = "Inner",
@@ -3516,9 +3504,10 @@ function Library:CreateWindow(...)
     CornerCircle.Parent = Outer;
     CornerCircle.ZIndex = 100;
 
-    -- === Corner resize (bottom-right) ===
-    -- Minimum size = the size the window spawned with (Config.Size)
     do
+        -- FIX: min size = whatever the window spawned with (Config.Size).
+        -- You can grow the window but cannot shrink it smaller than its
+        -- initial size.
         local MinW = Config.Size.X.Offset;
         local MinH = Config.Size.Y.Offset;
 
@@ -3605,28 +3594,10 @@ function Library:CreateWindow(...)
             StartResize(Position, InputType);
         end;
 
-        -- Bigger invisible grab zone over the corner
-        local CornerGrab = Library:Create('Frame', {
-            AnchorPoint = Vector2.new(0.5, 0.5);
-            BackgroundTransparency = 1;
-            Position = UDim2.new(1, 0, 1, 0);
-            Size = UDim2.fromOffset(60, 60);
-            ZIndex = 101;
-            Active = true;
-            Parent = Outer;
-        });
-
-        CornerGrab.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1
-            or Input.UserInputType == Enum.UserInputType.Touch then
-                OnHandlePressed(Input.Position, Input.UserInputType);
-            end
-        end);
-
         CornerCircle.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
                 OnHandlePressed(Input.Position, Input.UserInputType);
-            end
+            end;
         end);
 
         InputService.InputBegan:Connect(function(Input)
@@ -3782,8 +3753,6 @@ function Library:CreateWindow(...)
                 BackgroundColor3 = 'BackgroundColor';
                 BorderColor3 = 'OutlineColor';
             });
-            Library:ApplySpinningStroke(BoxOuter);
-
             local BoxInner = Library:Create('Frame', {
                 BackgroundColor3 = Library.BackgroundColor;
                 BorderColor3 = Color3.new(0, 0, 0);
@@ -4276,315 +4245,4 @@ if InputService.TouchEnabled then
 end
 
 getgenv().Library = Library
-
--- ============================================================================
---  WORKING EXAMPLE
---  This uses the Library directly (no loadstring/httpget needed).
---  Delete everything below if you only want the library itself.
--- ============================================================================
-
-local Window = Library:CreateWindow({
-    Title        = "Charcoal UI",
-    Center       = true,
-    AutoShow     = true,
-    Size         = UDim2.fromOffset(600, 660),
-    Position     = UDim2.fromOffset(175, 50),
-    TabPadding   = 4,
-    MenuFadeTime = 0.2,
-    UseBlur      = true,
-    BlurSize     = 24,
-    UseDarken    = true,
-    DarkenAmount = 55,
-})
-
-Library:SetWatermark("Charcoal UI  |  " .. LocalPlayer.Name)
-
-Library:ConfigureNotifications({
-    Alignment       = "Right",
-    BarSide         = "Top",
-    SortOrder       = "Time",
-    PosX            = 97,
-    PosY            = 5,
-    Transparency    = 40,
-    MaxHeight       = 300,
-    ClipDescendants = true,
-})
-
-Library:Notify("Welcome, " .. LocalPlayer.Name .. "!", 5)
-Library:Notify("Press RightControl to toggle the menu.", 5)
-
--- ---------------------------------------------------------------
-local MainTab    = Window:AddTab("Main")
-local CombatTab  = Window:AddTab("Combat")
-local VisualsTab = Window:AddTab("Visuals")
-local ConfigTab  = Window:AddTab("Config")
-
--- MAIN ----------------------------------------------------------
-local MainLeft  = MainTab:AddLeftGroupbox("Overview")
-local MainRight = MainTab:AddRightGroupbox("Quick Actions")
-
-MainLeft:AddLabel("A demonstration of every Linoria element.", true)
-MainLeft:AddDivider()
-
-MainLeft:AddButton({
-    Text = "Simple Button",
-    Func = function()
-        Library:Notify("You pressed the simple button!", 3)
-    end,
-})
-
-MainLeft:AddButton({
-    Text        = "Double-Click Confirm",
-    DoubleClick = true,
-    Func        = function()
-        Library:Notify("Confirmed!", 3)
-    end,
-})
-
-MainLeft:AddDivider()
-
-local SampleInput = MainLeft:AddInput("DemoInput", {
-    Text        = "Text Input",
-    Default     = "",
-    Placeholder = "Type something...",
-    Callback    = function(v) end,
-})
-
-MainLeft:AddInput("NumberInput", {
-    Text        = "Numeric Input",
-    Default     = "10",
-    Placeholder = "0",
-    Numeric     = true,
-    MaxLength   = 5,
-    Callback    = function(v) end,
-})
-
-MainRight:AddLabel("Toggles")
-MainRight:AddDivider()
-
-local ESPToggle = MainRight:AddToggle("ESPToggle", {
-    Text    = "Example Toggle",
-    Default = false,
-    Tooltip = "A toggle with a tooltip",
-})
-
-MainRight:AddToggle("RiskToggle", {
-    Text    = "Risky Toggle",
-    Default = false,
-    Risky   = true,
-})
-
-MainRight:AddDivider()
-MainRight:AddLabel("Sliders")
-
-MainRight:AddSlider("SpeedSlider", {
-    Text     = "Walk Speed",
-    Default  = 16,
-    Min      = 8,
-    Max      = 200,
-    Rounding = 0,
-    Suffix   = " spd",
-    Callback = function(v)
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then hum.WalkSpeed = v end
-        end
-    end,
-})
-
-MainRight:AddSlider("CompactSlider", {
-    Text     = "Compact",
-    Default  = 50,
-    Min      = 0,
-    Max      = 100,
-    Rounding = 0,
-    Compact  = true,
-    Suffix   = "%",
-})
-
-MainRight:AddDivider()
-MainRight:AddLabel("Keybinds")
-
-MainRight:AddKeyPicker("FlyKeybind", {
-    Default = "F",
-    Text    = "Toggle Fly",
-    Mode    = "Toggle",
-    Callback = function(state)
-        Library:Notify("Fly keybind: " .. tostring(state), 3)
-    end,
-})
-
--- COMBAT --------------------------------------------------------
-local CombatLeft  = CombatTab:AddLeftGroupbox("Aimbot")
-local CombatRight = CombatTab:AddRightGroupbox("Targeting")
-
-CombatLeft:AddToggle("Aimbot", { Text = "Enable Aimbot", Default = false })
-
-CombatLeft:AddSlider("AimFOV", {
-    Text = "FOV", Default = 90, Min = 10, Max = 360, Rounding = 0,
-})
-
-CombatLeft:AddDropdown("AimPart", {
-    Text    = "Target Part",
-    Values  = {"Head", "UpperTorso", "LowerTorso", "HumanoidRootPart", "Random"},
-    Default = "Head",
-})
-
-CombatRight:AddDropdown("PlayerTarget", {
-    Text        = "Player List",
-    SpecialType = "Player",
-    AllowNull   = true,
-})
-
-CombatRight:AddDropdown("MultiSelect", {
-    Text    = "Multi Dropdown",
-    Values  = {"Alpha", "Beta", "Gamma", "Delta", "Epsilon"},
-    Default = {"Alpha", "Gamma"},
-    Multi   = true,
-})
-
--- VISUALS -------------------------------------------------------
-local VisLeft  = VisualsTab:AddLeftGroupbox("ESP")
-local VisRight = VisualsTab:AddRightGroupbox("Colors")
-
-local VisualToggle = VisLeft:AddToggle("VisualESP", { Text = "Enable ESP", Default = false })
-
-VisLeft:AddToggle("ESPBox",   { Text = "Box",         Default = true })
-VisLeft:AddToggle("ESPName",  { Text = "Name",        Default = true })
-VisLeft:AddToggle("ESPHealth",{ Text = "Health Bar",  Default = true })
-
-VisRight:AddColorPicker("BoxColor", {
-    Title   = "Box Color",
-    Default = Color3.fromRGB(200, 68, 240),
-})
-
-VisRight:AddColorPicker("TracerColor", {
-    Title        = "Tracer Color",
-    Default      = Color3.fromRGB(255, 255, 255),
-    Transparency = 0.2,
-})
-
-VisualToggle:AddKeyPicker("ESPKeybind", {
-    Default         = "RightShift",
-    Text            = "Toggle ESP",
-    Mode            = "Toggle",
-    SyncToggleState = true,
-})
-
--- CONFIG --------------------------------------------------------
-local CfgLeft  = ConfigTab:AddLeftGroupbox("UI Appearance")
-local CfgRight = ConfigTab:AddRightGroupbox("Menu Settings")
-
-Library:AddBlurSlider(CfgLeft)
-CfgLeft:AddDivider()
-Library:AddDarkenSlider(CfgLeft)
-CfgLeft:AddDivider()
-Library:AddKeybindTransparencySlider(CfgLeft)
-
-CfgLeft:AddDivider()
-CfgLeft:AddSlider("FontSizeSlider", {
-    Text     = "Font Size",
-    Default  = 14,
-    Min      = 10,
-    Max      = 22,
-    Rounding = 0,
-    Callback = function(v) Library:SetFontSize(v) end,
-})
-
-CfgLeft:AddDivider()
-CfgLeft:AddLabel("Theme Colors (live)")
-
-CfgLeft:AddColorPicker("AccentPicker", {
-    Title   = "Accent Color",
-    Default = Library.AccentColor,
-    Callback = function(c)
-        Library.AccentColor = c
-        Library.AccentColorDark = Library:GetDarkerColor(c)
-        Library:UpdateColorsUsingRegistry()
-    end,
-})
-
-CfgLeft:AddColorPicker("MainPicker", {
-    Title   = "Main Color",
-    Default = Library.MainColor,
-    Callback = function(c)
-        Library.MainColor = c
-        Library:UpdateColorsUsingRegistry()
-    end,
-})
-
-CfgRight:AddToggle("WireframeDragToggle", {
-    Text    = "Wireframe Drag/Resize",
-    Default = Library.WireframeDrag,
-    Callback = function(v) Library.WireframeDrag = v end,
-})
-
-CfgRight:AddDivider()
-CfgRight:AddLabel("Notifications")
-
-CfgRight:AddDropdown("NotifyAlignment", {
-    Text    = "Alignment",
-    Values  = {"Left", "Center", "Right"},
-    Default = "Right",
-    Callback = function(v) Library:ConfigureNotifications({ Alignment = v }) end,
-})
-
-CfgRight:AddDropdown("NotifyBarSide", {
-    Text    = "Accent Bar",
-    Values  = {"Top", "Bottom", "Left", "Right"},
-    Default = "Top",
-    Callback = function(v) Library:ConfigureNotifications({ BarSide = v }) end,
-})
-
-CfgRight:AddButton({
-    Text = "Test Notification",
-    Func = function()
-        Library:Notify("Test at " .. os.date("%X"), 4)
-    end,
-})
-
-CfgRight:AddButton({
-    Text = "Spam 5 Notifications",
-    Func = function()
-        for i = 1, 5 do Library:Notify("Notification #" .. i, 4) end
-    end,
-})
-
-CfgRight:AddDivider()
-CfgRight:AddDropdown("KeybindMode", {
-    Text    = "Keybind Display",
-    Values  = {"All", "Active", "Toggled"},
-    Default = "All",
-    Callback = function(v) Library:SetKeybindMode(v) end,
-})
-
--- TABBOX DEMO ---------------------------------------------------
-local TabboxTab    = Window:AddTab("Tabbox Demo")
-local TabboxLeft   = TabboxTab:AddLeftTabbox("Sections")
-
-local SecA = TabboxLeft:AddTab("Section A")
-SecA:AddToggle("A1", { Text = "Option A1", Default = false })
-SecA:AddSlider("A3", { Text = "Value", Default = 50, Min = 0, Max = 100, Rounding = 0 })
-
-local SecB = TabboxLeft:AddTab("Section B")
-SecB:AddToggle("B1", { Text = "Option B1", Default = false })
-SecB:AddInput("B2", { Text = "Name", Default = "", Placeholder = "..." })
-
-local TabboxRight = TabboxTab:AddRightTabbox("Settings Panels")
-local GenPanel = TabboxRight:AddTab("General")
-GenPanel:AddToggle("G1", { Text = "Enable", Default = true })
-
-local AdvPanel = TabboxRight:AddTab("Advanced")
-AdvPanel:AddDropdown("AD2", {
-    Text    = "Log Level",
-    Values  = {"Info", "Warn", "Error"},
-    Default = "Info",
-})
-
-Library:OnUnload(function()
-    print("[Charcoal UI] Unloaded.")
-end)
-
-print("[Charcoal UI] Loaded successfully.")
 return Library
