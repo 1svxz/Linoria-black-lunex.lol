@@ -38,12 +38,11 @@ local Library = {
 
     HudRegistry = {};
 
-    -- [EDIT 1] Charcoal black default palette
     FontColor = Color3.fromRGB(255, 255, 255);
-    MainColor = Color3.fromRGB(28, 28, 28);
-    BackgroundColor = Color3.fromRGB(18, 18, 18);
-    AccentColor = Color3.fromRGB(200, 68, 240);   -- #C844F0
-    OutlineColor = Color3.fromRGB(38, 38, 38);
+    MainColor = Color3.fromRGB(30, 30, 30);         -- charcoal
+    BackgroundColor = Color3.fromRGB(18, 18, 18);   -- dark charcoal
+    AccentColor = Color3.fromRGB(200, 68, 240);     -- #C844F0
+    OutlineColor = Color3.fromRGB(48, 48, 48);      -- subtle charcoal outline
     RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
@@ -82,6 +81,7 @@ local Library = {
 };
 
 Library.KeyPickerList = {};
+Library.SpinningStrokes = {};
 
 Library.BlurEffect = Instance.new("BlurEffect")
 Library.BlurEffect.Name = "LinoriaBlur"
@@ -135,6 +135,8 @@ function Library:SetBlur(Size)
     end
 end
 
+-- Call this with any Groupbox to add a blur toggle + size slider
+-- e.g. Library:AddBlurSlider(MyGroupbox)
 function Library:AddBlurSlider(Groupbox)
     Groupbox:AddToggle('LinoriaUseBlur', {
         Text    = 'Background Blur';
@@ -157,6 +159,8 @@ function Library:AddBlurSlider(Groupbox)
     });
 end
 
+-- Call this with any Groupbox to add a darken toggle + amount slider
+-- e.g. Library:AddDarkenSlider(MyGroupbox)
 function Library:AddDarkenSlider(Groupbox)
     Groupbox:AddToggle('LinoriaUseDarken', {
         Text    = 'Background Darken';
@@ -181,6 +185,7 @@ function Library:AddDarkenSlider(Groupbox)
     });
 end
 
+-- Control keybind frame background transparency (0 = opaque, 1 = invisible)
 function Library:SetKeybindTransparency(Value)
     Value = math.clamp(Value, 0, 1);
     local Inner = Library.KeybindInner;
@@ -200,6 +205,8 @@ function Library:SetKeybindTransparency(Value)
     end
 end
 
+-- Call this with any Groupbox to add a keybind frame transparency slider
+-- e.g. Library:AddKeybindTransparencySlider(MyGroupbox)
 function Library:AddKeybindTransparencySlider(Groupbox)
     Groupbox:AddSlider('LinoriaKeybindTransparency', {
         Text     = 'Keybind Transparency';
@@ -256,6 +263,16 @@ table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
     end
 end))
 
+-- Animate the spinning gradient strokes
+table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
+    for _, Data in ipairs(Library.SpinningStrokes) do
+        local G = Data.Gradient;
+        if G and G.Parent then
+            G.Rotation = (G.Rotation + Delta * 90) % 360;
+        end
+    end
+end));
+
 local function GetPlayersString()
     local PlayerList = Players:GetPlayers();
     for i = 1, #PlayerList do
@@ -272,7 +289,7 @@ local function GetTeamsString()
         TeamList[i] = TeamList[i].Name;
     end;
     table.sort(TeamList, function(str1, str2) return str1 < str2 end);
-
+    
     return TeamList;
 end;
 
@@ -337,6 +354,27 @@ function Library:ApplyGlow(Inst)
 
 end;
 
+-- Spinning white<->black gradient outline
+function Library:ApplySpinningStroke(Instance)
+    local Stroke = Library:Create('UIStroke', {
+        Color = Color3.new(1, 1, 1);
+        Thickness = 1.5;
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+        Parent = Instance;
+    });
+    local Gradient = Library:Create('UIGradient', {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0.00, Color3.new(0, 0, 0)),
+            ColorSequenceKeypoint.new(0.50, Color3.new(1, 1, 1)),
+            ColorSequenceKeypoint.new(1.00, Color3.new(0, 0, 0)),
+        });
+        Rotation = 0;
+        Parent = Stroke;
+    });
+    table.insert(Library.SpinningStrokes, { Gradient = Gradient });
+    return Stroke;
+end;
+
 function Library:CreateLabel(Properties, IsHud)
     local _Instance = Library:Create('TextLabel', {
         BackgroundTransparency = 1;
@@ -372,11 +410,11 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow)
             ChangedConn = InputService.InputChanged:Connect(function(Change)
                 if Change.UserInputType == Enum.UserInputType.MouseMovement or Change == Input then
                     local Delta = Change.Position - DragStart
-
+                    
                     if IsWindow and Library.WireframeDrag then
                         if not HasMoved and Delta.Magnitude > 2 then
                             HasMoved = true
-
+                            
                             Wireframe = Library:Create("Frame", {
                                 Size = Instance.Size,
                                 Position = Instance.Position,
@@ -387,7 +425,7 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow)
                                 ZIndex = 100000,
                                 Parent = ScreenGui
                             })
-
+                         
                             local stroke = Library:Create("UIStroke", {
                                 Color = Library.AccentColor,
                                 Thickness = 1,
@@ -395,7 +433,7 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow)
                                 Parent = Wireframe
                             })
                         end
-
+                        
                         if HasMoved and Wireframe then
                             Wireframe.Position = UDim2.new(
                                 StartPos.X.Scale, StartPos.X.Offset + Delta.X,
@@ -416,10 +454,10 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow)
                     Dragging = false
                     ChangedConn:Disconnect()
                     EndedConn:Disconnect()
-
+                    
                     if IsWindow and Library.WireframeDrag and HasMoved and Wireframe then
                         Instance.Position = Wireframe.Position
-
+                        
                         Wireframe:Destroy()
                         Wireframe = nil
                     end
@@ -624,7 +662,7 @@ function Library:Unload()
     if Library.OnUnload then
         Library.OnUnload()
     end
-
+    
     if Library.BlurEffect then
         Library.BlurEffect:Destroy()
     end
@@ -771,7 +809,7 @@ do
             ZIndex = 18;
             Parent = HueSelectorOuter;
         });
-        local HueCursor = Library:Create('Frame', {
+        local HueCursor = Library:Create('Frame', { 
             BackgroundColor3 = Color3.new(1, 1, 1);
             AnchorPoint = Vector2.new(0, 0.5);
             BorderColor3 = Color3.new(0, 0, 0);
@@ -833,8 +871,8 @@ do
             TextColor3 = Library.FontColor
         });
         local TransparencyBoxOuter, TransparencyBoxInner, TransparencyCursor;
-
-        if Info.Transparency then
+        
+        if Info.Transparency then 
             TransparencyBoxOuter = Library:Create('Frame', {
                 BorderColor3 = Color3.new(0, 0, 0);
                 Position = UDim2.fromOffset(4, 251);
@@ -859,7 +897,7 @@ do
                 ZIndex = 20;
                 Parent = TransparencyBoxInner;
             });
-            TransparencyCursor = Library:Create('Frame', {
+            TransparencyCursor = Library:Create('Frame', { 
                 BackgroundColor3 = Color3.new(1, 1, 1);
                 AnchorPoint = Vector2.new(0.5, 0);
                 BorderColor3 = Color3.new(0, 0, 0);
@@ -962,7 +1000,7 @@ do
                     Parent = self.Inner;
                     TextXAlignment = Enum.TextXAlignment.Left,
                 });
-                Library:OnHighlight(Button, Button,
+                Library:OnHighlight(Button, Button, 
                     { TextColor3 = 'AccentColor' },
                     { TextColor3 = 'FontColor' }
                 );
@@ -1439,7 +1477,7 @@ do
                     YSize = YSize + 18;
                     local LabelChild = Frame:FindFirstChildOfClass('TextLabel')
                     if LabelChild and (LabelChild.TextBounds.X + 20 > XSize) then
-                        XSize = LabelChild.TextBounds.X + 20
+                        XSize = LabelChild.TextBounds.X + 20 
                     end
                 end;
             end;
@@ -1567,7 +1605,7 @@ do
         PickOuter.InputBegan:Connect(function(Input)
             if Library:MouseIsOverOpenedFrame() then
                 return;
-            end
+            end;
 
             if Input.UserInputType == Enum.UserInputType.MouseButton1 then
                 BeginPicking();
@@ -1610,17 +1648,17 @@ do
                 task.delay(LongPressTime, function()
                     if TouchEnded or TouchMoved then
                         return;
-                    end
+                    end;
 
                     LongPressed = true;
 
                     if ChangedConn then
                         ChangedConn:Disconnect();
-                    end
+                    end;
 
                     if EndedConn then
                         EndedConn:Disconnect();
-                    end
+                    end;
 
                     OpenModeSelect();
                 end);
@@ -1634,7 +1672,7 @@ do
 
                     if Key == 'MB1' or Key == 'MB2' or Key == 'Touch' then
                         if Key == 'MB1' and Input.UserInputType == Enum.UserInputType.MouseButton1
-                        or Key == 'MB2' and Input.UserInputType == Enum.UserInputType.MouseButton2
+                        or Key == 'MB2' and Input.UserInputType == Enum.UserInputType.MouseButton2 
                         or Key == 'Touch' and Input.UserInputType == Enum.UserInputType.Touch then
                             KeyPicker.Toggled = not KeyPicker.Toggled
                             KeyPicker:DoClick()
@@ -1648,7 +1686,7 @@ do
                 end;
 
                 KeyPicker:Update();
-            end
+            end;
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
                 local AbsPos, AbsSize = ModeSelectOuter.AbsolutePosition, ModeSelectOuter.AbsoluteSize;
                 if Mouse.X < AbsPos.X or Mouse.X > AbsPos.X + AbsSize.X
@@ -1911,7 +1949,7 @@ do
 
             Button.Outer.InputBegan:Connect(function(Input)
                 if not ValidateClick(Input) then return end
-
+ 
                 if Button.Locked then return end
 
                 if Button.DoubleClick then
@@ -2464,16 +2502,16 @@ do
         end;
         SliderInner.InputBegan:Connect(function(Input)
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
-
+                
                 local function UpdateSlider(PosX)
                     local gPos = Fill.AbsolutePosition.X
-
+                    
                     local Diff = PosX - gPos
                     local nX = math.clamp(Diff, 0, Slider.MaxSize)
 
                     local nValue = Slider:GetValueFromXOffset(nX);
                     local OldValue = Slider.Value;
-
+    
                     Slider.Value = nValue;
 
                     Slider:Display();
@@ -2934,7 +2972,7 @@ do
         local Depbox = {
             Dependencies = {};
         };
-
+        
         local Groupbox = self;
         local Container = Groupbox.Container;
 
@@ -3318,7 +3356,7 @@ function Library:CreateWindow(...)
     if InputService.TouchEnabled then
         local vp = Library.ScreenGui.AbsoluteSize
         local maxWidth = math.min(Config.Size.X.Offset, vp.X - 20)
-
+      
         local maxHeight = math.min(Config.Size.Y.Offset, vp.Y - 60)
         Config.Size = UDim2.fromOffset(maxWidth, maxHeight)
     end
@@ -3344,6 +3382,9 @@ function Library:CreateWindow(...)
     });
     Library:MakeDraggable(Outer, 25, true);
 
+    -- Spinning white<->black gradient outline on the main window
+    Library:ApplySpinningStroke(Outer);
+
     local Inner = Library:Create('Frame', {
         Name = "Inner",
         BackgroundColor3 = Library.MainColor;
@@ -3358,41 +3399,11 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'OutlineColor';
     });
-
-    -- [EDIT 2a] Spinning white/black outline gradient on window border
-    do
-        local SpinningStroke = Library:Create('UIStroke', {
-            Name             = 'SpinningOutline',
-            Color            = Color3.new(1, 1, 1),
-            Thickness        = 1.75,
-            ApplyStrokeMode  = Enum.ApplyStrokeMode.Border,
-            Parent           = Inner,
-        });
-
-        local SpinningGradient = Library:Create('UIGradient', {
-            Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
-                ColorSequenceKeypoint.new(0.25, Color3.new(0, 0, 0)),
-                ColorSequenceKeypoint.new(0.50, Color3.new(1, 1, 1)),
-                ColorSequenceKeypoint.new(0.75, Color3.new(0, 0, 0)),
-                ColorSequenceKeypoint.new(1.00, Color3.new(1, 1, 1)),
-            }),
-            Parent = SpinningStroke,
-        });
-
-        task.spawn(function()
-            while Outer.Parent do
-                SpinningGradient.Rotation = (SpinningGradient.Rotation + 2.5) % 360
-                RunService.RenderStepped:Wait()
-            end
-        end)
-    end
-
     local WindowLabel = Library:CreateLabel({
         Position = UDim2.new(0, 0, 0, 0);
         Size = UDim2.new(1, 0, 0, 25);
         Text = Config.Title or '';
-        RichText = true;
+        RichText = true; 
         TextXAlignment = Enum.TextXAlignment.Center;
         ZIndex = 1;
         Parent = Inner;
@@ -3494,160 +3505,234 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'OutlineColor';
     });
-
-    -- [EDIT 2b] ASCII background layer (#C844F0) behind toggles/buttons/sliders
-    do
-        local AsciiArt = [[
- /$$       /$$   /$$ /$$   /$$ /$$$$$$$$ /$$   /$$     /$$        /$$$$$$  /$$
-| $$      | $$  | $$| $$$ | $$| $$_____/| $$  / $$    | $$       /$$__  $$| $$
-| $$      | $$  | $$| $$$$| $$| $$      |  $$/ $$/    | $$      | $$  \ $$| $$
-| $$      | $$  | $$| $$ $$ $$| $$$$$    \  $$$$/     | $$      | $$  | $$| $$
-| $$      | $$  | $$| $$  $$$$| $$__/     >$$  $$     | $$      | $$  | $$| $$
-| $$      | $$  | $$| $$\  $$$| $$       /$$/\  $$    | $$      | $$  | $$| $$
-| $$$$$$$$|  $$$$$$/| $$ \  $$| $$$$$$$$| $$  \ $$ /$$| $$$$$$$$|  $$$$$$/| $$$$$$$$
-|________/ \______/ |__/  \__/|________/|__/  |__/|__/|________/ \______/ |________/
-]]
-
-        local AsciiLabel = Library:Create('TextLabel', {
-            Name                   = 'AsciiBackground',
-            BackgroundTransparency = 1,
-            AnchorPoint            = Vector2.new(0.5, 0.5),
-            Position               = UDim2.new(0.5, 0, 0.5, 0),
-            Size                   = UDim2.new(1, -12, 1, -12),
-            Font                   = Enum.Font.Code,
-            Text                   = AsciiArt,
-            TextColor3             = Color3.fromHex('C844F0'),
-            TextTransparency       = 0.25,
-            TextXAlignment         = Enum.TextXAlignment.Center,
-            TextYAlignment         = Enum.TextYAlignment.Center,
-            TextScaled             = true,
-            TextWrapped            = false,
-            ZIndex                 = 1,
-            Active                 = false,
-            Parent                 = TabContainer,
-        });
-        Library:AddToRegistry(AsciiLabel, { TextColor3 = 'AccentColor' });
-        -- ensure our requested hue stays
-        AsciiLabel.TextColor3 = Color3.fromHex('C844F0');
-
-        Library:Create('UITextSizeConstraint', {
-            MaxTextSize = 12,
-            MinTextSize = 4,
-            Parent      = AsciiLabel,
-        });
-    end
-
     Outer.ClipsDescendants = true;
+    local CornerCircle = Library:Create('Frame', {
+        AnchorPoint      = Vector2.new(0.5, 0.5);
+        BackgroundColor3 = Library.AccentColor;
+        BackgroundTransparency = 0.5;
+        BorderSizePixel  = 0;
+        Position         = UDim2.new(1, 0, 1, 0);
+        Size             = UDim2.fromOffset(46, 46);
+        ZIndex           = 10;
+        Parent           = Inner;
+    });
+    Library:Create('UICorner', {
+        CornerRadius = UDim.new(1, 0);
+        Parent       = CornerCircle;
+    });
+    Library:AddToRegistry(CornerCircle, {
+        BackgroundColor3 = 'AccentColor';
+    });
+    CornerCircle.Active = true;
+    CornerCircle.Parent = Outer;
+    CornerCircle.ZIndex = 100;
 
-    -- [EDIT 3] Visible resizable "_|" handle at bottom-right
     do
-        local CornerCircle = Library:Create('Frame', {
-            Name             = 'ResizeHandle',
-            AnchorPoint      = Vector2.new(0, 0),
-            BackgroundColor3 = Library.BackgroundColor,
-            BorderSizePixel  = 0,
-            Position         = UDim2.new(1, -14, 1, -14),
-            Size             = UDim2.fromOffset(14, 14),
-            ZIndex           = 100000,
-            Parent           = Outer,
-        });
-        Library:AddToRegistry(CornerCircle, { BackgroundColor3 = 'BackgroundColor' });
-        CornerCircle.Active = true;
+        local MinW = 420;
+        local MinH = 340;
 
-        local CornerGlyph = Library:CreateLabel({
-            BackgroundTransparency = 1,
-            Size                   = UDim2.new(1, 0, 1, 0),
-            Text                   = '⌐',
-            TextSize               = 18,
-            Rotation               = 45,
-            TextXAlignment         = Enum.TextXAlignment.Center,
-            TextYAlignment         = Enum.TextYAlignment.Center,
-            ZIndex                 = 100001,
-            Parent                 = CornerCircle,
-        });
-        Library:AddToRegistry(CornerGlyph, { TextColor3 = 'AccentColor' });
-        CornerGlyph.TextColor3 = Library.AccentColor;
-
-        local MinW, MinH = 420, 340;
-        local Resizing, ResizeConn, EndConn;
+        local Resizing = false;
+        local ResizeConn, EndConn;
         local StartSize, DragStart, DragType;
-        local HasMoved, Wireframe;
+        local HasMoved = false;
+        local Wireframe;
 
         local function StopResize()
             Resizing = false;
-            if ResizeConn then ResizeConn:Disconnect(); ResizeConn = nil end
-            if EndConn    then EndConn:Disconnect();    EndConn    = nil end
-        end
+            if ResizeConn then ResizeConn:Disconnect(); ResizeConn = nil; end
+            if EndConn then EndConn:Disconnect(); EndConn = nil; end
+        end;
 
         local function StartResize(Position, FromType)
-            if Resizing then return end
-            StopResize()
-            Resizing  = true
-            StartSize = Outer.Size
-            DragStart = Position
-            DragType  = FromType
-            HasMoved  = false
-            if Wireframe then Wireframe:Destroy(); Wireframe = nil end
+            if Resizing then return; end
+            StopResize();
+
+            Resizing = true;
+            StartSize = Outer.Size;
+            DragStart = Position;
+            DragType = FromType;
+            HasMoved = false;
+            if Wireframe then Wireframe:Destroy(); Wireframe = nil; end
 
             ResizeConn = InputService.InputChanged:Connect(function(Change)
-                local T = Change.UserInputType
-                if T ~= Enum.UserInputType.MouseMovement and T ~= Enum.UserInputType.Touch then return end
-                if DragType ~= Enum.UserInputType.Touch and T == Enum.UserInputType.Touch then return end
+                local T = Change.UserInputType;
+                if T ~= Enum.UserInputType.MouseMovement and T ~= Enum.UserInputType.Touch then return; end
+                if DragType ~= Enum.UserInputType.Touch and T == Enum.UserInputType.Touch then return; end
 
-                local Delta = Change.Position - DragStart
-                if not HasMoved and Delta.Magnitude <= 2 then return end
+                local Delta = Change.Position - DragStart;
+                if not HasMoved and Delta.Magnitude <= 2 then return; end
 
-                local TopLeft = Outer.AbsolutePosition
-                local VPSize  = Library.ScreenGui.AbsoluteSize
+                local TopLeft = Outer.AbsolutePosition;
+                local VPSize = Library.ScreenGui.AbsoluteSize;
 
-                local NewW = math.clamp(StartSize.X.Offset + Delta.X, MinW, VPSize.X - TopLeft.X)
-                local NewH = math.clamp(StartSize.Y.Offset + Delta.Y, MinH, VPSize.Y - TopLeft.Y)
+                local NewW = math.clamp(StartSize.X.Offset + Delta.X, MinW, VPSize.X - TopLeft.X);
+                local NewH = math.clamp(StartSize.Y.Offset + Delta.Y, MinH, VPSize.Y - TopLeft.Y);
 
                 if Library.WireframeDrag then
                     if not HasMoved then
-                        HasMoved = true
+                        HasMoved = true;
+
                         Wireframe = Library:Create('Frame', {
-                            Size = UDim2.fromOffset(NewW, NewH),
-                            Position = UDim2.fromOffset(TopLeft.X, TopLeft.Y),
-                            BackgroundTransparency = 1,
-                            Active = false,
-                            ZIndex = 100000,
-                            Parent = ScreenGui,
-                        })
+                            Size = UDim2.fromOffset(NewW, NewH);
+                            Position = UDim2.fromOffset(TopLeft.X, TopLeft.Y);
+                            BackgroundTransparency = 1;
+                            Active = false;
+                            ZIndex = 100000;
+                            Parent = ScreenGui;
+                        });
+
                         Library:Create('UIStroke', {
-                            Color = Library.AccentColor,
-                            Thickness = 1,
-                            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-                            Parent = Wireframe,
-                        })
-                    end
+                            Color = Library.AccentColor;
+                            Thickness = 1;
+                            ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+                            Parent = Wireframe;
+                        });
+                    end;
+
                     if HasMoved and Wireframe then
-                        Wireframe.Position = UDim2.fromOffset(TopLeft.X, TopLeft.Y)
-                        Wireframe.Size     = UDim2.fromOffset(NewW, NewH)
-                    end
+                        Wireframe.Position = UDim2.fromOffset(TopLeft.X, TopLeft.Y);
+                        Wireframe.Size = UDim2.fromOffset(NewW, NewH);
+                    end;
                 else
-                    Outer.Size = UDim2.fromOffset(NewW, NewH)
-                end
-            end)
+                    Outer.Size = UDim2.fromOffset(NewW, NewH);
+                end;
+            end);
 
             EndConn = InputService.InputEnded:Connect(function(EndInput)
                 if EndInput.UserInputType == DragType then
                     if Library.WireframeDrag and HasMoved and Wireframe then
-                        Outer.Size = Wireframe.Size
-                        Wireframe:Destroy()
-                        Wireframe = nil
-                    end
-                    StopResize()
-                end
-            end)
-        end
+                        Outer.Size = Wireframe.Size;
+                        Wireframe:Destroy();
+                        Wireframe = nil;
+                    end;
+                    StopResize();
+                end;
+            end);
+        end;
+
+        local function OnHandlePressed(Position, InputType)
+            StartResize(Position, InputType);
+        end;
 
         CornerCircle.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1
-            or Input.UserInputType == Enum.UserInputType.Touch then
-                StartResize(Input.Position, Input.UserInputType)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+                OnHandlePressed(Input.Position, Input.UserInputType);
+            end;
+        end);
+
+        InputService.InputBegan:Connect(function(Input)
+            if Input.UserInputType ~= Enum.UserInputType.MouseButton1 and Input.UserInputType ~= Enum.UserInputType.Touch then return; end
+            if Resizing then return; end
+
+            local WindowPos = Outer.AbsolutePosition;
+            local WindowSize = Outer.AbsoluteSize;
+            local CenterX = WindowPos.X + WindowSize.X;
+            local CenterY = WindowPos.Y + WindowSize.Y;
+            local P = Input.Position;
+            local Rad = 26;
+            local DX = CenterX - P.X;
+            local DY = CenterY - P.Y;
+
+            if (DX * DX) + (DY * DY) <= (Rad * Rad) then
+                OnHandlePressed(P, Input.UserInputType);
+            end;
+        end);
+    end;
+
+    -- === Right & Bottom edge resize handles ===
+    do
+        local MinW, MinH = 420, 340;
+
+        local function StartEdgeResize(Input, Edge)
+            local StartSize = Outer.Size;
+            local DragStart = Input.Position;
+            local InputType = Input.UserInputType;
+            local ResizeConn, EndConn;
+            local HasMoved = false;
+            local Wireframe;
+
+            local function Cleanup()
+                if ResizeConn then ResizeConn:Disconnect(); ResizeConn = nil end
+                if EndConn then EndConn:Disconnect(); EndConn = nil end
+                if Wireframe then Wireframe:Destroy(); Wireframe = nil end
             end
-        end)
+
+            ResizeConn = InputService.InputChanged:Connect(function(Change)
+                local T = Change.UserInputType;
+                if T ~= Enum.UserInputType.MouseMovement and T ~= Enum.UserInputType.Touch then return end
+                if InputType ~= Enum.UserInputType.Touch and T == Enum.UserInputType.Touch then return end
+
+                local Delta = Change.Position - DragStart;
+                if not HasMoved and Delta.Magnitude <= 2 then return end
+
+                local TopLeft = Outer.AbsolutePosition;
+                local VPSize = Library.ScreenGui.AbsoluteSize;
+
+                local NewW, NewH = StartSize.X.Offset, StartSize.Y.Offset;
+                if Edge == 'Right' then
+                    NewW = math.clamp(StartSize.X.Offset + Delta.X, MinW, VPSize.X - TopLeft.X);
+                elseif Edge == 'Bottom' then
+                    NewH = math.clamp(StartSize.Y.Offset + Delta.Y, MinH, VPSize.Y - TopLeft.Y);
+                end
+
+                if Library.WireframeDrag then
+                    if not HasMoved then
+                        HasMoved = true;
+                        Wireframe = Library:Create('Frame', {
+                            Size = UDim2.fromOffset(NewW, NewH);
+                            Position = UDim2.fromOffset(TopLeft.X, TopLeft.Y);
+                            BackgroundTransparency = 1;
+                            Active = false;
+                            ZIndex = 100000;
+                            Parent = ScreenGui;
+                        });
+                        Library:Create('UIStroke', {
+                            Color = Library.AccentColor;
+                            Thickness = 1;
+                            ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+                            Parent = Wireframe;
+                        });
+                    end
+                    if Wireframe then
+                        Wireframe.Position = UDim2.fromOffset(TopLeft.X, TopLeft.Y);
+                        Wireframe.Size = UDim2.fromOffset(NewW, NewH);
+                    end
+                else
+                    Outer.Size = UDim2.fromOffset(NewW, NewH);
+                end
+            end);
+
+            EndConn = InputService.InputEnded:Connect(function(EndInput)
+                if EndInput.UserInputType == InputType then
+                    if Library.WireframeDrag and HasMoved and Wireframe then
+                        Outer.Size = Wireframe.Size;
+                    end
+                    Cleanup();
+                end
+            end);
+        end
+
+        local function MakeHandle(name, pos, size, edge)
+            local Handle = Library:Create('Frame', {
+                Name = name;
+                BackgroundTransparency = 1;
+                Position = pos;
+                Size = size;
+                ZIndex = 20;
+                Active = true;
+                Parent = Outer;
+            });
+            Handle.InputBegan:Connect(function(Input)
+                if Input.UserInputType == Enum.UserInputType.MouseButton1
+                or Input.UserInputType == Enum.UserInputType.Touch then
+                    StartEdgeResize(Input, edge);
+                end
+            end);
+            return Handle;
+        end
+
+        MakeHandle('RightResize',  UDim2.new(1, -6, 0, 0),  UDim2.new(0, 6, 1, 0), 'Right');
+        MakeHandle('BottomResize', UDim2.new(0, 0, 1, -6),  UDim2.new(1, 0, 0, 6), 'Bottom');
     end
 
     function Window:SetWindowTitle(Title)
@@ -3682,8 +3767,8 @@ function Library:CreateWindow(...)
             BackgroundColor3 = Library.AccentColor;
             BorderSizePixel = 0;
             Position = UDim2.new(0, 0, 0, 0);
-            Size = UDim2.new(1, 0, 0, 2);
-            Visible = false;
+            Size = UDim2.new(1, 0, 0, 2); 
+            Visible = false; 
             ZIndex = 4;
             Parent = TabButton;
         });
@@ -3784,6 +3869,10 @@ function Library:CreateWindow(...)
                 BackgroundColor3 = 'BackgroundColor';
                 BorderColor3 = 'OutlineColor';
             });
+
+            -- Spinning outline on groupboxes
+            Library:ApplySpinningStroke(BoxOuter);
+
             local BoxInner = Library:Create('Frame', {
                 BackgroundColor3 = Library.BackgroundColor;
                 BorderColor3 = Color3.new(0, 0, 0);
@@ -4004,7 +4093,7 @@ function Library:CreateWindow(...)
                     if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
                         Tab:Show();
                         Tab:Resize();
-                    end;
+                    end
                 end);
 
                 Tab.Container = Container;
@@ -4037,7 +4126,7 @@ function Library:CreateWindow(...)
         TabButton.InputBegan:Connect(function(Input)
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
                 Tab:ShowTab();
-            end;
+            end
         end);
         if #TabContainer:GetChildren() == 1 then
             Tab:ShowTab();
@@ -4138,7 +4227,7 @@ if InputService.TouchEnabled then
     MobileGui.Parent = CoreGui
 
     local BTN_W, BTN_H = 88, 30
-    local BTN_GAP      = 40
+    local BTN_GAP      = 40  
 
     local function CreateMobileButton(name, text, startPos)
         local Outer = Library:Create('Frame', {
@@ -4176,7 +4265,7 @@ if InputService.TouchEnabled then
 
         local GradientOverlay = Library:Create('Frame', {
             Name             = name .. "Gradient",
-            BackgroundColor3 = Color3.new(1, 1, 1),
+            BackgroundColor3 = Color3.new(1, 1, 1), 
             BorderSizePixel  = 0,
             Size             = UDim2.new(1, 0, 1, 0),
             ZIndex           = 303,
@@ -4184,8 +4273,8 @@ if InputService.TouchEnabled then
         })
         Library:Create('UIGradient', {
             Transparency = NumberSequence.new({
-                NumberSequenceKeypoint.new(0, 0.90),
-                NumberSequenceKeypoint.new(1, 1.0)
+                NumberSequenceKeypoint.new(0, 0.90), 
+                NumberSequenceKeypoint.new(1, 1.0)   
             }),
             Rotation = 90,
             Parent = GradientOverlay,
