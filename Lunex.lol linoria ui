@@ -490,6 +490,27 @@ function Library:GetDarkerColor(Color)
     return Color3.fromHSV(H, S, V / 1.5);
 end;
 
+-- [FIX] Accent gradient helpers --------------------------------------------
+function Library:GetAccentGradient()
+    return ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Library.AccentColor),
+        ColorSequenceKeypoint.new(1, Library:GetDarkerColor(Library.AccentColor)),
+    });
+end;
+
+function Library:MakeAccentGradient(Parent)
+    local grad = Library:Create('UIGradient', {
+        Color = Library:GetAccentGradient(),
+        Rotation = 90,
+        Parent = Parent,
+    });
+    Library:AddToRegistry(grad, {
+        Color = function() return Library:GetAccentGradient() end,
+    });
+    return grad;
+end;
+-- -------------------------------------------------------------------------
+
 local function fontScale(font)
     if font == Enum.Font.Code then return 0.9 end;
     if font == Enum.Font.RobotoMono then return 0.92 end;
@@ -724,14 +745,8 @@ do
             ZIndex = 18,
             Parent = HueBoxOuter;
         });
-        Library:Create('UIGradient', {
-            Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
-            });
-            Rotation = 90;
-            Parent = HueBoxInner;
-        });
+        -- [FIX] gradient now follows accent color
+        Library:MakeAccentGradient(HueBoxInner);
 
         local HueBox = Library:Create('TextBox', {
             BackgroundTransparency = 1;
@@ -1617,14 +1632,8 @@ do
                 ZIndex = 6;
                 Parent = Inner;
             });
-            Library:Create('UIGradient', {
-                Color = ColorSequence.new({
-                    ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
-                });
-                Rotation = 90;
-                Parent = Inner;
-            });
+            -- [FIX] button gradient follows accent color
+            Library:MakeAccentGradient(Inner);
             Library:AddToRegistry(Outer, { BorderColor3 = 'Black'; });
             Library:AddToRegistry(Inner, { BackgroundColor3 = 'MainColor'; BorderColor3 = 'OutlineColor'; });
             Library:OnHighlight(Outer, Outer,
@@ -1771,14 +1780,8 @@ do
             { BorderColor3 = 'Black' }
         );
         if type(Info.Tooltip) == 'string' then Library:AddToolTip(Info.Tooltip, TextBoxOuter) end
-        Library:Create('UIGradient', {
-            Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
-            });
-            Rotation = 90;
-            Parent = TextBoxInner;
-        });
+        -- [FIX] input gradient follows accent color
+        Library:MakeAccentGradient(TextBoxInner);
         local Container = Library:Create('Frame', {
             BackgroundTransparency = 1;
             ClipsDescendants = true;
@@ -2182,14 +2185,8 @@ do
             Parent = DropdownOuter;
         });
         Library:AddToRegistry(DropdownInner, { BackgroundColor3 = 'MainColor'; BorderColor3 = 'OutlineColor'; });
-        Library:Create('UIGradient', {
-            Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
-            });
-            Rotation = 90;
-            Parent = DropdownInner;
-        });
+        -- [FIX] dropdown gradient follows accent color
+        Library:MakeAccentGradient(DropdownInner);
         local DropdownArrow = Library:Create('ImageLabel', {
             AnchorPoint = Vector2.new(0, 0.5);
             BackgroundTransparency = 1;
@@ -2802,6 +2799,79 @@ function Library:SpawnNotify(Text, Time)
         Library:ProcessNotifyQueue();
     end);
 end;
+
+-- [FIX] Notification placement settings panel ------------------------------
+function Library:AddNotificationSettings(Groupbox)
+    local notifyDebounce
+    local function ping()
+        if notifyDebounce then task.cancel(notifyDebounce) end
+        notifyDebounce = task.delay(0.25, function()
+            notifyDebounce = nil
+            Library:Notify('this is where your notif shows up now', 3)
+        end)
+    end
+
+    local function refresh(cfg)
+        for k, v in next, cfg do Library.NotifyConfig[k] = v end
+        Library:ConfigureNotifications({})
+        ping()
+    end
+
+    Groupbox:AddDivider()
+    Groupbox:AddLabel('Notification Placement')
+
+    Groupbox:AddDropdown('NotifyAlignment', {
+        Text    = 'Horizontal Anchor',
+        Values  = { 'Left', 'Center', 'Right' },
+        Default = Library.NotifyConfig.Alignment,
+        Callback = function(v) refresh({ Alignment = v }) end,
+    })
+
+    Groupbox:AddDropdown('NotifyBarSide', {
+        Text    = 'Vertical Anchor',
+        Values  = { 'Top', 'Bottom' },
+        Default = Library.NotifyConfig.BarSide,
+        Callback = function(v) refresh({ BarSide = v }) end,
+    })
+
+    Groupbox:AddSlider('NotifyPosX', {
+        Text = 'Position X', Default = Library.NotifyConfig.PosX,
+        Min = 0, Max = 100, Rounding = 0, Suffix = '%',
+        Callback = function(v) refresh({ PosX = v }) end,
+    })
+
+    Groupbox:AddSlider('NotifyPosY', {
+        Text = 'Position Y', Default = Library.NotifyConfig.PosY,
+        Min = 0, Max = 100, Rounding = 0, Suffix = '%',
+        Callback = function(v) refresh({ PosY = v }) end,
+    })
+
+    Groupbox:AddSlider('NotifyTransparency', {
+        Text = 'Transparency', Default = Library.NotifyConfig.Transparency,
+        Min = 0, Max = 100, Rounding = 0, Suffix = '%',
+        Callback = function(v) refresh({ Transparency = v }) end,
+    })
+
+    Groupbox:AddDropdown('NotifySortOrder', {
+        Text    = 'Sort Order',
+        Values  = { 'Time', 'Text Length' },
+        Default = Library.NotifyConfig.SortOrder,
+        Callback = function(v) refresh({ SortOrder = v }) end,
+    })
+
+    Groupbox:AddToggle('NotifyClip', {
+        Text    = 'Clip Descendants',
+        Default = Library.NotifyConfig.ClipDescendants,
+        Callback = function(v) refresh({ ClipDescendants = v }) end,
+    })
+
+    Groupbox:AddSlider('NotifyMaxHeight', {
+        Text = 'Max Height', Default = Library.NotifyConfig.MaxHeight,
+        Min = 50, Max = 500, Rounding = 0,
+        Callback = function(v) refresh({ MaxHeight = v }) end,
+    })
+end
+-- -------------------------------------------------------------------------
 
 function Library:CreateWindow(...)
     local Arguments = { ... }
