@@ -7,9 +7,8 @@ do
 
     ThemeManager.Library = nil
     ThemeManager.BuiltInThemes = {
-        -- ═══ Default is now charcoal + #C844F0 purple ═══
-        ['Default'] = { 1, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1e1e1e","AccentColor":"c844f0","BackgroundColor":"121212","OutlineColor":"303030"}') },
-        ['Charcoal'] = { 2, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1e1e1e","AccentColor":"c844f0","BackgroundColor":"121212","OutlineColor":"303030"}') },
+        
+        ['Default'] = { 1, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"181818","AccentColor":"b9d0fa","BackgroundColor":"141419","OutlineColor":"26262d"}') },
         ['Primordial'] = { 3, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"181818","AccentColor":"d7a6b0","BackgroundColor":"1f1f1f","OutlineColor":"2a2a2a"}') },
         ['BBot'] = { 4, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1e1e1e","AccentColor":"7e48a3","BackgroundColor":"232323","OutlineColor":"141414"}') },
         ['Fatality'] = { 5, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1e1842","AccentColor":"c50754","BackgroundColor":"191335","OutlineColor":"3c355d"}') },
