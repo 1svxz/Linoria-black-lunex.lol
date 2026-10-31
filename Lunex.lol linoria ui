@@ -37,12 +37,13 @@ local Library = {
     RegistryMap = {};
     HudRegistry = {};
 
-    FontColor = Color3.fromRGB(255, 255, 255);
-    MainColor = Color3.fromRGB(30, 30, 30);
-    BackgroundColor = Color3.fromRGB(18, 18, 18);
-    AccentColor = Color3.fromRGB(200, 68, 240);
-    OutlineColor = Color3.fromRGB(48, 48, 48);
-    RiskColor = Color3.fromRGB(255, 50, 50),
+
+FontColor = Color3.fromRGB(255, 255, 255);        -- ffffff (unchanged)
+MainColor = Color3.fromRGB(24, 24, 24);           -- 181818
+BackgroundColor = Color3.fromRGB(20, 20, 25);     -- 141419
+AccentColor = Color3.fromRGB(185, 208, 250);      -- b9d0fa
+OutlineColor = Color3.fromRGB(38, 38, 45);        -- 26262d
+RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0),
     Font = Enum.Font.Code,
