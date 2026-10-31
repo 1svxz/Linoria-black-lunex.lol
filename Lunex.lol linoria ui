@@ -46,7 +46,7 @@ OutlineColor = Color3.fromRGB(38, 38, 45);        -- 26262d
 RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0),
-    Font = Enum.Font.Code,
+    Font = Enum.Font.SansBold,
     FontSize = 14,
 
     OpenedFrames = {};
@@ -3542,7 +3542,7 @@ if InputService.TouchEnabled then
             Name = name .. "Btn",
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
-            Font = Enum.Font.Code,
+            Font = Enum.Font.SansBold,
             Text = text,
             TextColor3 = Color3.fromRGB(255, 255, 255),
             TextSize = Library.FontSize - 1,
