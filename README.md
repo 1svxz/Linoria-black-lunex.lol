@@ -1,4 +1,4 @@
-LinoriaLib — adding UI features
+# Linoria modded | Step by step tutorial
 
 ```
 Library/
@@ -32,7 +32,7 @@ Library/
 
 ---
 
-Window + tabs (the skeleton)
+# Window + tabs
 
 ```lua
 local Library = loadstring(game:HttpGet('...'))()
@@ -50,42 +50,42 @@ local Tabs = {
 }
 ```
 
-Every widget below hangs off a groupbox, and every groupbox hangs off a tab. Columns are independent — you can build left first, then right, and they render side by side.
+**Every widget below hangs off a groupbox, and every groupbox hangs off a tab. Columns are independent — you can build left first, then right, and they render side by side.**
 
 ---
 
-Groupbox (the container)
+# Groupbox
 
 ```lua
 local mainBox = Tabs.Main:AddLeftGroupbox('Aimbot')
 local sideBox = Tabs.Main:AddRightGroupbox('Visuals')
 ```
 
-AddLeftGroupbox / AddRightGroupbox are the only two column constructors. Multiple groupboxes per side stack vertically.
+**AddLeftGroupbox / AddRightGroupbox are the only two column constructors. Multiple groupboxes per side stack vertically.**
 
 ---
 
-Label (static text)
+# Label
 
 ```lua
 mainBox:AddLabel('Aimbot settings')
 ```
 
-Labels are also the parent for color pickers (see that section) — the picker attaches to a label, not to the groupbox directly.
+**Labels are also the parent for color pickers (see that section) — the picker attaches to a label, not to the groupbox directly.**
 
 ---
 
-Divider (visual separator)
+# Divider
 
 ```lua
 mainBox:AddDivider()
 ```
 
-No arguments, returns nothing useful. Use to break up long groupboxes.
+**No arguments, returns nothing useful. Use to break up long groupboxes.**
 
 ---
 
-Button (click action)
+# Button
 
 ```lua
 mainBox:AddButton('Reset settings', function()
@@ -93,18 +93,18 @@ mainBox:AddButton('Reset settings', function()
 end)
 ```
 
-Chaining two buttons on one row:
+**Chaining two buttons on one row:**
 
 ```lua
 mainBox:AddButton('Save', function() print('save') end)
        :AddButton('Load', function() print('load') end)
 ```
 
-The second AddButton on the returned widget places it beside the first.
+**The second AddButton on the returned widget places it beside the first.**
 
 ---
 
-Toggle (boolean)
+# Toggle
 
 ```lua
 mainBox:AddToggle('AimbotEnabled', {
@@ -117,7 +117,7 @@ mainBox:AddToggle('AimbotEnabled', {
 })
 ```
 
-Read/write via Options:
+**Read/write via Options:**
 
 ```lua
 if Options.AimbotEnabled:GetValue() then
@@ -130,7 +130,7 @@ Options.AimbotEnabled:OnChanged(function(v)
 end)
 ```
 
-Button + toggle on one row (button visually attached to the toggle):
+**Button + toggle on one row (button visually attached to the toggle):**
 
 ```lua
 mainBox:AddButton('Reset', function() print('reset') end)
@@ -139,7 +139,7 @@ mainBox:AddButton('Reset', function() print('reset') end)
 
 ---
 
-Slider (numeric range)
+# Slider
 
 ```lua
 mainBox:AddSlider('FOV', {
@@ -153,10 +153,10 @@ mainBox:AddSlider('FOV', {
 })
 ```
 
-· Rounding = 0 → integers; Rounding = 2 → two decimals.
-· Compact = true → hides the numeric input; useful for tight layouts.
+**· Rounding = 0 → integers; Rounding = 2 → two decimals.
+· Compact = true → hides the numeric input; useful for tight layouts.**
 
-Read:
+**Read:**
 
 ```lua
 local fov = Options.FOV:GetValue()   -- number
@@ -164,9 +164,9 @@ local fov = Options.FOV:GetValue()   -- number
 
 ---
 
-Dropdown (select)
+# Dropdown
 
-Single-select:
+**Single-select:**
 
 ```lua
 mainBox:AddDropdown('Mode', {
@@ -178,7 +178,7 @@ mainBox:AddDropdown('Mode', {
 })
 ```
 
-Multi-select:
+**Multi-select:**
 
 ```lua
 mainBox:AddDropdown('Bones', {
@@ -194,7 +194,7 @@ mainBox:AddDropdown('Bones', {
 })
 ```
 
-Read / write:
+**Read / write:**
 
 ```lua
 local mode  = Options.Mode:GetValue()        -- 'Silent'
@@ -206,7 +206,7 @@ Options.Mode:SetValues({ 'a', 'b', 'c' })    -- replace the list at runtime
 
 ---
 
-Input (text field)
+# Input
 
 ```lua
 mainBox:AddInput('WebhookURL', {
@@ -219,17 +219,17 @@ mainBox:AddInput('WebhookURL', {
 })
 ```
 
-Read:
+**Read:**
 
 ```lua
 local url = Options.WebhookURL:GetValue()   -- string
 ```
 
-Finished = true is what you want for URLs, names, tokens — anything where firing on every keystroke is wasteful.
+**Finished = true is what you want for URLs, names, tokens — anything where firing on every keystroke is wasteful.**
 
 ---
 
-Keybind (key capture)
+# Keybind
 
 ```lua
 mainBox:AddKeybind('AimbotKey', {
@@ -242,20 +242,20 @@ mainBox:AddKeybind('AimbotKey', {
 })
 ```
 
-Read the current key and mode:
+**Read the current key and mode:**
 
 ```lua
 local keyObj = Options.AimbotKey:GetValue()
 print(keyObj.Key, keyObj.Mode)   -- Enum.KeyCode.E, 'Toggle'
 ```
 
-This is the one widget where you generally don't subscribe via OnChanged — the Callback fires on press, not on rebind. To react to a rebind specifically, hook Options.AimbotKey:OnChanged.
+**This is the one widget where you generally don't subscribe via OnChanged — the Callback fires on press, not on rebind. To react to a rebind specifically, hook Options.AimbotKey:OnChanged.**
 
 ---
 
-Color picker
+# Color picker
 
-Color pickers attach to a label (or any widget that supports AddColorPicker — labels are the common case):
+**Color pickers attach to a label (or any widget that supports AddColorPicker — labels are the common case):**
 
 ```lua
 mainBox:AddLabel('Accent color'):AddColorPicker('AccentColor', {
@@ -266,22 +266,22 @@ mainBox:AddLabel('Accent color'):AddColorPicker('AccentColor', {
 })
 ```
 
-Why the label parent. AddColorPicker returns a picker overlay; the label is the visible row you click. Without the label there's no anchor on the groupbox — you'd have a floating picker with no trigger.
+**Why the label parent. AddColorPicker returns a picker overlay; the label is the visible row you click. Without the label there's no anchor on the groupbox — you'd have a floating picker with no trigger.**
 
-Read / write:
+**Read / write:**
 
 ```lua
 local c = Options.AccentColor:GetValue()        -- Color3
 Options.AccentColor:SetValueRGB(Color3.new(1, 0, 0))  -- fires Callback
 ```
 
-SetValueRGB is color-picker specific — SetValue expects the picker's internal table shape, so always use SetValueRGB when scripting a color change.
+**SetValueRGB is color-picker specific — SetValue expects the picker's internal table shape, so always use SetValueRGB when scripting a color change.**
 
 ---
 
-The Options registry (why every widget has an ID)
+**The Options registry (why every widget has an ID)**
 
-Every Add* call with a string ID registers a proxy in the global Options table:
+**Every Add call with a string ID registers a proxy in the global Options table:**
 
 ```lua
 Options.AimbotEnabled:GetValue()      -- read
@@ -289,17 +289,17 @@ Options.AimbotEnabled:SetValue(v)     -- write + fire Callback
 Options.AimbotEnabled:OnChanged(cb)   -- subscribe
 ```
 
-Rules:
+# Rules:
 
-· ID must be unique. Registering the same ID twice silently overwrites.
+**· ID must be unique. Registering the same ID twice silently overwrites.
 · Widgets without IDs (labels, dividers, plain buttons) don't create Options entries — you can't script them, only click them.
-· Options persists per-session only — it's an in-memory table. Persist to disk yourself (that's what ThemeManager:SaveCustomTheme does for colors).
+· Options persists per-session only — it's an in-memory table. Persist to disk yourself (that's what ThemeManager:SaveCustomTheme does for colors).**
 
 ---
 
-Adding a feature — worked example
+# Adding a feature — worked example
 
-Say you want a "Fly speed" slider + "Enable fly" toggle on the Main tab.
+**Say you want a "Fly speed" slider + "Enable fly" toggle on the Main tab.**
 
 ```lua
 -- 1. groupbox (only if you don't already have one on this side)
@@ -334,10 +334,10 @@ RunService.Heartbeat:Connect(function()
 end)
 ```
 
-Three patterns to internalize:
+**Three patterns to internalize:**
 
-1. UI layer — Add* builds the widget and registers its ID.
+**1. UI layer — Add builds the widget and registers its ID.
 2. State layer — Options.<id>:GetValue() reads, :OnChanged subscribes.
-3. Logic layer — your Heartbeat/hook/event loop reads Options and does the work.
+3. Logic layer — your Heartbeat/hook/event loop reads Options and does the work.**
 
-Never put game logic inside Callback if it needs to run continuously — Callback only fires on change. Use it to set a cached variable, then read that variable in your loop.
+**Never put game logic inside Callback if it needs to run continuously — Callback only fires on change. Use it to set a cached variable, then read that variable in your loop.**
