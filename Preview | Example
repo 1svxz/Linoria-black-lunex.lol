@@ -1,0 +1,193 @@
+-- loads the UI lib and config / theme savers
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/1svxz/Linoria-black-lunex.lol/refs/heads/main/Lunex.lol%20linoria%20ui"))()
+local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/1svxz/Linoria-black-lunex.lol/refs/heads/main/Theme%20manager"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/1svxz/Linoria-black-lunex.lol/refs/heads/main/Save%20manager"))()
+
+-- creates the folders for the config / theme savers
+ThemeManager.Library = Library
+SaveManager.Library  = Library
+ThemeManager:SetFolder("Lunex.lol")
+SaveManager:SetFolder("Lunex.lol")
+
+-- creates the window for the UI lib
+local Window = Library:CreateWindow({
+    Title        = "Linornia modded repo by @yxhdm",
+    Center       = true,
+    AutoShow     = true,
+    Size         = UDim2.fromOffset(640, 700), 
+    TabPadding   = 4,
+    UseBlur      = true,
+    BlurSize     = 24,
+    UseDarken    = true,
+    DarkenAmount = 55,
+})
+-- UI Lib watermark
+Library:SetWatermark("Linoria modded example preview")
+
+-- Creates the tabs
+local MainTab    = Window:AddTab("Main")
+local ButtonsTab = Window:AddTab("Buttons/Input")
+local TabboxTab  = Window:AddTab("Tab box")
+local ConfigTab  = Window:AddTab("Config")
+
+-- Creates the left group box for the toggles & text
+local G1 = MainTab:AddLeftGroupbox("Toggles")
+
+-- toggle 1
+G1:AddToggle("exampleToggle", {
+    Text     = "Example Toggle",
+    Default  = false,
+})
+
+-- toggle 2
+G1:AddToggle("defaultOnToggle", {
+    Text     = "On by Default Toggle",
+    Default  = true,
+})
+
+-- toggle 3
+local colorToggle = G1:AddToggle("toggleWithColor", {
+    Text     = "Toggle w/ Color Picker",
+    Default  = false,
+})
+
+-- toggle 4
+colorToggle:AddColorPicker("toggleWithColorPicker", {
+    Title        = "Pick a color",
+    Default      = Color3.fromRGB(255, 255, 255),
+})
+
+-- toggle 5
+local kbToggle = G1:AddToggle("toggleWithKeybind", {
+    Text     = "Toggle w/ Keybind",
+    Default  = false,
+})
+
+-- toggle 6
+kbToggle:AddKeyPicker("toggleWithKeybindKey", {
+    Text     = "Toggle w/ Keybind",
+    Default  = "F",
+    Mode     = "Toggle",
+})
+
+-- divider
+G1:AddDivider()
+
+-- text 1
+G1:AddLabel("This is a plain text label")
+
+-- text 2
+local textColorHolder = G1:AddLabel("Text w/ Color Picker")
+textColorHolder:AddColorPicker("textWithColorPicker", {
+    Title        = "Pick a color",
+    Default      = Color3.fromRGB(255, 255, 255),
+    Transparency = 0,
+})
+
+-- text 3
+local textKeyHolder = G1:AddLabel("Text w/ Keybind")
+textKeyHolder:AddKeyPicker("textWithKeybindKey", {
+    Text     = "Text w/ Keybind",
+    Default  = "G",
+    Mode     = "Toggle",
+})
+
+-- Creates the right group box for the sliders & for the very long text
+local G2 = MainTab:AddRightGroupbox("Sliders")
+
+-- slider 1 (Fixed the single hyphen typo here)
+G2:AddSlider("percentSlider", {
+    Text     = "Percent 0-100%",
+    Default  = 50, Min = 0, Max = 100,
+    Rounding = 0, Suffix = "%",
+})
+
+-- slider 2
+G2:AddSlider("longSlider", {
+    Text     = "Long Number (0 → 1,000,000)",
+    Default  = 500000, Min = 0, Max = 1000000, Rounding = 0,
+    HideMax  = true, 
+})
+
+-- divider
+G2:AddDivider()
+
+-- very long text
+G2:AddLabel(
+    "This is a very long text paragraph used to demonstrate how the library " ..
+    "handles wrapping and multi-line content. It is intentionally verbose so " ..
+    "that its line-wrapping behaviour, group-box auto-sizing, and overall " ..
+    "readability can be evaluated at a glance.",
+    true 
+)
+
+-- input for notif
+local notifText = "notification"
+
+-- Creates the left group box for the buttons & notif
+local BG1 = ButtonsTab:AddLeftGroupbox("Buttons")
+
+-- button 1
+BG1:AddButton("Simple Button", function()
+    Library:Notify("You clicked the simple button!", 3)
+end)
+
+-- button 2
+BG1:AddButton({
+    Text = "Double Click (are u sure?)",
+    DoubleClick = true, 
+    Func = function()
+        Library:Notify("Confirmed! Action executed.", 3)
+    end
+})
+
+-- button 3
+BG1:AddButton("Send Notification", function()
+    Library:Notify(notifText, 4)
+end)
+
+-- Creates the right group box for inputs
+local BG2 = ButtonsTab:AddRightGroupbox("Inputs")
+
+-- input 1
+BG2:AddInput("notifInput", {
+    Text        = "Notification Text",
+    Default     = "notification",
+    Placeholder = "type your notification here",
+    Finished    = true,
+    Callback    = function(v) notifText = v end,
+})
+
+-- input 2
+BG2:AddInput("numericInput", {
+    Text        = "Numeric Input",
+    Default     = "123",
+    Placeholder = "enter a number",
+    Numeric     = true,
+    Finished    = true,
+})
+
+-- creates the tab box
+local tb = TabboxTab:AddLeftTabbox()
+
+-- tab box 1st tab
+local MoveSub = tb:AddTab("Movement")
+MoveSub:AddToggle("speedToggle", { Text = "Speed Hack", Default = false })
+MoveSub:AddSlider("speedValue", { Text = "Speed Value", Default = 16, Min = 16, Max = 200, Rounding = 0 })
+MoveSub:AddToggle("jumpToggle", { Text = "Jump Boost", Default = false })
+MoveSub:AddSlider("jumpValue", { Text = "Jump Power", Default = 50, Min = 50, Max = 500, Rounding = 0 })
+
+-- tab box 2nd tab
+local CombatSub = tb:AddTab("Combat")
+CombatSub:AddToggle("aimToggle", { Text = "Aim Assist", Default = false })
+CombatSub:AddSlider("fovSlider", { Text = "FOV", Default = 90, Min = 10, Max = 360, Rounding = 0, Suffix = "°" })
+CombatSub:AddDropdown("hitPartDrop", {
+    Text = "Hit Part",
+    Values = { "Head", "Torso", "HumanoidRootPart" },
+    Default = "Head",
+})
+
+-- this are the configs and themes
+ThemeManager:ApplyToTab(ConfigTab)
+SaveManager:BuildConfigSection(ConfigTab)
+SaveManager:IgnoreThemeSettings()
